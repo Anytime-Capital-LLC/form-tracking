@@ -1,27 +1,42 @@
-// META PIXEL
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1360261405409329');
-fbq('track', 'PageView');
+(function () {
+  // Your 123FB field IDs
+  var ID_SOURCE   = 118981960; // utm_source
+  var ID_MEDIUM   = 118982127; // utm_medium
+  var ID_CAMPAIGN = 118982128; // utm_campaign
 
-// Google Tag/gtag() code fires after submit
-document.addEventListener('DOMContentLoaded', function() {
-  var form = document.querySelector('form');
-  if (!form) return;
-  form.addEventListener('submit', function() {
-    // 1. Notify parent page
-    window.parent.postMessage({ event: 'form123_submitted' }, '*');
-    // 2. Fire Google Ads/GA4 conversion event
-    gtag('event', 'conversion_event_submit_lead_form', {
-      // add event parameters here
-      'event_callback': function() {},
-      'event_timeout': 2000
-    });
-  });
-});
+  function getQS(name) {
+    try { return new URLSearchParams(window.location.search).get(name) || ""; }
+    catch(e){ return ""; }
+  }
+
+  function setField(fieldId, value) {
+    if (!fieldId || !value) return false;
+    try {
+      var node = loader && loader.engine && loader.engine.document && loader.engine.document.getElementById(fieldId);
+      if (node && typeof node.setValue === 'function') {
+        node.setValue({ value: String(value) });
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function fillOnce() {
+    var s = getQS('utm_source');
+    var m = getQS('utm_medium');
+    var c = getQS('utm_campaign');
+
+    var ok = false;
+    ok = setField(ID_SOURCE, s)   || ok;
+    ok = setField(ID_MEDIUM, m)   || ok;
+    ok = setField(ID_CAMPAIGN, c) || ok;
+    return ok;
+  }
+
+  // Try repeatedly for up to ~5s so we don't race the form renderer
+  var tries = 0, maxTries = 20;
+  var timer = setInterval(function () {
+    tries++;
+    if (fillOnce() || tries >= maxTries) clearInterval(timer);
+  }, 250);
+})();
